@@ -178,6 +178,11 @@ end entity framework;
 
 architecture synthesis of framework is
 
+signal      long_count        : std_logic_vector(31 downto 0);
+signal      short_count       : std_logic_vector(31 downto 0);
+signal      qnice_long_count  : std_logic_vector(31 downto 0);
+signal      qnice_short_count : std_logic_vector(31 downto 0);
+
 ---------------------------------------------------------------------------------------------
 -- Constants
 ---------------------------------------------------------------------------------------------
@@ -702,6 +707,11 @@ begin
                         -- SHELL_M_DXDY: Use full screen
                         when X"002" => qnice_ramrom_data_in <= std_logic_vector(to_unsigned((VGA_DX/FONT_DX) * 256 + (VGA_DY/FONT_DY), 16));
 
+                        when X"003" => qnice_ramrom_data_in <= qnice_short_count(15 downto 0);
+                        when X"004" => qnice_ramrom_data_in <= qnice_short_count(31 downto 16);
+                        when X"005" => qnice_ramrom_data_in <= qnice_long_count(15 downto 0);
+                        when X"006" => qnice_ramrom_data_in <= qnice_long_count(31 downto 16);
+
                         when others => null;
                      end case;
 
@@ -1193,6 +1203,8 @@ begin
          avm_readdata_o      => hr_readdata,
          avm_readdatavalid_o => hr_readdatavalid,
          avm_waitrequest_o   => hr_waitrequest,
+         long_count_o        => long_count,
+         short_count_o       => short_count,
          hr_resetn_o         => hr_reset,
          hr_csn_o            => hr_cs0,
          hr_ck_o             => hr_clk_p,
@@ -1203,6 +1215,20 @@ begin
          hr_dq_out_o         => hr_dq_out,
          hr_dq_oe_o          => hr_dq_oe
       ); -- i_hyperram
+
+   i_hr2qnice: xpm_cdc_array_single
+      generic map (
+         WIDTH => 64
+      )
+      port map (
+         src_clk                => hr_clk_x1,
+         src_in(31 downto 0)    => long_count,
+         src_in(63 downto 32)   => short_count,
+         dest_clk               => qnice_clk,
+         dest_out(31 downto 0)  => qnice_long_count,
+         dest_out(63 downto 32) => qnice_short_count
+      ); -- i_hr2qnice
+
 
    -- Tri-state buffers for HyperRAM
    hr_rwds    <= hr_rwds_out when hr_rwds_oe = '1' else 'Z';

@@ -30,6 +30,9 @@ entity hyperram_ctrl is
       avm_readdatavalid_o : out std_logic;
       avm_waitrequest_o   : out std_logic;
 
+      long_count_o        : out std_logic_vector(31 downto 0);
+      short_count_o       : out std_logic_vector(31 downto 0);
+
       -- HyperBus control signals
       hb_rstn_o           : out std_logic;
       hb_ck_ddr_o         : out std_logic_vector(1 downto 0);
@@ -57,6 +60,8 @@ architecture synthesis of hyperram_ctrl is
    );
 
    signal state : state_t;
+   signal long_count        : std_logic_vector(31 downto 0);
+   signal short_count       : std_logic_vector(31 downto 0);
 
    signal writedata         : std_logic_vector(15 downto 0);
    signal byteenable        : std_logic_vector(1 downto 0);
@@ -126,8 +131,10 @@ begin
                else
                   if hb_rwds_in_i = '1' then
                      latency_count <= 2*G_LATENCY - 2;
+                     long_count <= std_logic_vector(unsigned(long_count) + 1);
                   else
                      latency_count <= G_LATENCY - 2;
+                     short_count <= std_logic_vector(unsigned(short_count) + 1);
                   end if;
                   if config = '1' and read = '0' then
                      recovery_count <= 3;
@@ -208,6 +215,8 @@ begin
          end case;
 
          if rst_i = '1' then
+            short_count <= (others => '0');
+            long_count  <= (others => '0');
             avm_waitrequest_o   <= '1';
             avm_readdatavalid_o <= '0';
             state        <= INIT_ST;
@@ -219,6 +228,9 @@ begin
          end if;
       end if;
    end process p_fsm;
+
+   long_count_o  <= long_count;
+   short_count_o <= short_count;
 
    hb_dq_ddr_out_o   <= avm_writedata_i when state = WRITE_BURST_ST else
                         command_address(47 downto 32);
