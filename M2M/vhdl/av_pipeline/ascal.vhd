@@ -288,7 +288,7 @@ ARCHITECTURE rtl OF ascal IS
   ----------------------------------------------------------
   CONSTANT NB_BURST : natural :=ilog2(N_BURST);
   CONSTANT NB_LA : natural :=ilog2(N_DW/8); -- Low address bits
-  CONSTANT BLEN : natural :=N_BURST / N_DW * 8; -- Burst length
+  CONSTANT BLEN : natural :=N_BURST / (N_DW/8); -- Burst length
   
   ----------------------------------------------------------
   TYPE arr_dw IS  ARRAY (natural RANGE <>) OF unsigned(N_DW-1 DOWNTO 0);

@@ -118,8 +118,8 @@ architecture synthesis of digital_pipeline is
    signal hdmi_tmds              : slv_9_0_t(0 to 2);    -- parallel TMDS symbol stream x 3 channels
    signal hdmi_video_mode        : video_modes_t;
 
-   constant C_AVM_ADDRESS_SIZE   : integer := 19;
-   constant C_AVM_DATA_SIZE      : integer := 128;
+   constant C_AVM_ADDRESS_SIZE   : integer := 20;
+   constant C_AVM_DATA_SIZE      : integer := 64;
    signal hdmi_htotal            : integer;
    signal hdmi_hsstart           : integer;
    signal hdmi_hsend             : integer;
@@ -305,7 +305,7 @@ begin
          IHRES     => 1024,         -- Maximum horizontal input resolution. (Also here no parameter for vertical.)
          N_DW      => C_AVM_DATA_SIZE,
          N_AW      => C_AVM_ADDRESS_SIZE,
-         N_BURST   => 256           -- 256 bytes per burst
+         N_BURST   => 64            -- 64 bytes per burst
       )
       port map (
          -- Input video
