@@ -14,10 +14,20 @@
 
 #include "menu_vars.asm"
 
+; DEBUG: WIP-V5-A11
+LATENCY_FAST    .BLOCK 2
+LATENCY_SLOW    .BLOCK 2
+LATENCY_Q_STR   .BLOCK 45                       ; incl. 0-term b/c WORD2HEXSTR                  
+LATENCY_Q_STR_L .EQU   44                       ; quotient string length
+LATENCY_V_STR_L .EQU   5                        ; len. of 1 value incl. space
+LATENCY_Q_STR_S .EQU   32                       ; space
+DBG_CYC_MID     .BLOCK 1                        ; cycle counter to measure 1s
+DBG_CYC_HI      .BLOCK 1
+DBG_WAIT        .EQU   0x02FB                   ; 1 second
+
 ; reset handling
 WELCOME_SHOWN   .BLOCK 1                        ; we need to trust that this
                                                 ; is 0 on system coldstart
-
 ; option menu
 OPTM_ICOUNT     .BLOCK 1                        ; amount of menu items
 OPTM_SCOUNT     .BLOCK 1                        ; amount of submenus

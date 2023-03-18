@@ -143,6 +143,118 @@ START_CONNECT   RSUB    WAIT333MS, 1
                 OR      M2M$CSR_KBD_JOY, @R0
 
                 ; ------------------------------------------------------------
+                ; DEBUG: WIP-V5-A11
+                ; ------------------------------------------------------------
+
+                ; skip the code of the debug functions
+                RBRA    DBG_CONT, 1
+
+                ; backup main screen coordinate variables
+BACKUP_COORDS   SYSCALL(enter, 1)
+                MOVE    SCR$OSM_MEM, R8
+                MOVE    SCR$OSM_M_BCKUP, R9
+                MOVE    4, R10
+                SYSCALL(memcpy, 1)
+                SYSCALL(leave, 1)
+                RET
+
+                ; restore main screen coordinate variables
+RESTORE_COORDS  SYSCALL(enter, 1)
+                MOVE    SCR$OSM_M_BCKUP, R8
+                MOVE    SCR$OSM_MEM, R9            
+                MOVE    4, R10
+                SYSCALL(memcpy, 1)
+                SYSCALL(leave, 1)
+                RET
+
+                ; Show the debug screen overlay over the screen of the C64
+SET_DBG_SCR     SYSCALL(enter, 1)
+                MOVE    SCR$OSM_M_DEBUG, R8
+                MOVE    SCR$OSM_MEM, R9            
+                MOVE    4, R10
+                SYSCALL(memcpy, 1)
+                SYSCALL(leave, 1)
+                RET
+
+                ; Prepare mid/hi cycle counter to measure 1 second
+RESET_1S        INCRB
+                MOVE    DBG_CYC_MID, R0
+                MOVE    IO$CYC_MID, R1          ; "mid-word" of sys. cyc. cntr
+                MOVE    @R1, @R0
+                MOVE    DBG_CYC_HI, R0
+                MOVE    IO$CYC_HI, R1           ; "hi-word" of sys. cyc. cntr
+                MOVE    @R1, @R0
+                DECRB
+                RET
+
+                ; Debug main loop
+HANDLE_DEBUG    SYSCALL(enter, 1)
+
+                ; check if 1 second is over since the last measurement                
+                MOVE    DBG_CYC_MID, R8         ; 32-bit addition to calculate
+                MOVE    @R8, R8                 ; ..the target cycles
+                MOVE    DBG_CYC_HI, R9
+                MOVE    @R9, R9
+                ADD     DBG_WAIT, R8
+                ADDC    0, R9
+                MOVE    IO$CYC_MID, R10
+                MOVE    IO$CYC_HI, R11
+                CMP     @R11, R9
+                RBRA    _HNDL_DBG_1, N          ; wait until @R11 >= R9
+                RBRA    _HNDL_DBG_RET, !Z
+                CMP     @R10, R8
+                RBRA    _HNDL_DBG_RET, !N       ; wait while @R10 <= R8
+
+                ; retrieve new measurement
+_HNDL_DBG_1     MOVE    @R10, R7
+                RSUB    RESET_1S, 1
+                
+                ; copy current string one digit to the left
+                MOVE    LATENCY_Q_STR, R8
+                ADD     LATENCY_V_STR_L, R8
+                MOVE    LATENCY_Q_STR, R9
+                MOVE    LATENCY_Q_STR_L, R10
+                SUB     LATENCY_V_STR_L, R10
+                SYSCALL(memcpy, 1)
+
+                ; add newest measurement to string
+                MOVE    R7, R8
+                MOVE    LATENCY_Q_STR, R9
+                ADD     LATENCY_Q_STR_L, R9
+                SUB     LATENCY_V_STR_L, R9
+                ADD     1, R9
+                RSUB    WORD2HEXSTR, 1
+    
+                ; copy info string to VRAM
+                MOVE    M2M$RAMROM_DEV, R0
+                MOVE    M2M$VRAM_DATA, @R0
+                MOVE    M2M$RAMROM_4KWIN, R0
+                MOVE    0, @R0
+                MOVE    LATENCY_Q_STR, R8
+                MOVE    M2M$RAMROM_DATA, R9
+                MOVE    LATENCY_Q_STR_L, R10
+                SYSCALL(memcpy, 1)
+
+_HNDL_DBG_RET   SYSCALL(leave, 1)
+                RET
+
+                ; Setup and show debug screen
+DBG_CONT        RSUB    BACKUP_COORDS, 1
+                RSUB    SET_DBG_SCR, 1
+                RSUB    SCR$CLR, 1
+                RSUB    SCR$OSM_M_ON, 1
+
+                ; Prepare string buffer: spaces between the quotients
+                MOVE    LATENCY_Q_STR, R8
+                MOVE    LATENCY_Q_STR_L, R9
+                MOVE    LATENCY_Q_STR_S, R10
+                SYSCALL(memset, 1)
+
+                ; remember the current cycle counter to reset the measurement
+                ; of 1 second intervals
+                RSUB    RESET_1S, 1
+
+                ; ------------------------------------------------------------
                 ; Main loop:
                 ;
                 ; The core is running and QNICE is waiting for triggers to
@@ -162,6 +274,9 @@ MAIN_LOOP       RSUB    HANDLE_IO, 1            ; IO handling (e.g. vdrives)
 
                 RSUB    CHECK_DEBUG, 1          ; (Run/Stop+Cursor Up) + Help
                 RSUB    HELP_MENU, 1            ; check/manage help menu
+
+                ; DEBUG: WIP-V5-A11
+                RSUB    HANDLE_DEBUG, 1
 
                 RBRA    MAIN_LOOP, 1
 

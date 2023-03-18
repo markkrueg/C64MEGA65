@@ -191,8 +191,14 @@ _HLP_HEAP1_OK   MOVE    MENU_HEAP_SIZE, R8
                 MOVE    ERR_FATAL_HEAP2, R8     ; R9 contains the overrun
                 RSUB    FATAL, 1 
 
+                ; DEBUG: WIP-V5-A11
+                ; Make sure we have the original main screen coords for
+                ; example to be able to show the drive mount screen
+_HLP_HEAP2_OK   RSUB    SCR$OSM_OFF, 1
+                RSUB    RESTORE_COORDS, 1
+
                 ; run the menu
-_HLP_HEAP2_OK   RSUB    ROSM_REM_OLD, 1         ; remember current settings
+                RSUB    ROSM_REM_OLD, 1         ; remember current settings
                 RSUB    OPTM_SHOW, 1            ; fill VRAM
                 RSUB    SCR$OSM_O_ON, 1         ; make overlay visible
                 MOVE    OPTM_SELECTED, R9       ; use recently selected line
@@ -225,7 +231,12 @@ _HLP_RET        MOVE    M2M$CSR, R0
                 AND     M2M$CSR_UN_PAUSE, @R0
                 OR      M2M$CSR_KBD_JOY, @R0
 
-_HLP_RET_DIRECT SYSCALL(leave, 1)
+                ; DEBUG: WIP-V5-A11
+                ; Back to debug screen coords
+_HLP_RET_DIRECT RSUB    SET_DBG_SCR, 1
+                RSUB    SCR$OSM_M_ON, 1
+
+                SYSCALL(leave, 1)
                 RET
 
 ; ----------------------------------------------------------------------------

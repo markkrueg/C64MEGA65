@@ -17,10 +17,17 @@ SCR$SYS_DY      .BLOCK 1
 
 ; shortcut-variables (read-only): attributes of the main OSM and Help OSM:
 ; used to display the main OSM and the Help-Key ingame OSM (aka Options Menu)
+
+SCR$OSM_MEM
 SCR$OSM_M_X     .BLOCK 1
 SCR$OSM_M_Y     .BLOCK 1
 SCR$OSM_M_DX    .BLOCK 1
 SCR$OSM_M_DY    .BLOCK 1
+
+; DEBUG: WIP-V5-A11
+SCR$OSM_M_DEBUG .DW 0, 0, 44, 1
+SCR$OSM_M_BCKUP .BLOCK 4
+
 SCR$OSM_O_X     .BLOCK 1
 SCR$OSM_O_Y     .BLOCK 1
 SCR$OSM_O_DX    .BLOCK 1
