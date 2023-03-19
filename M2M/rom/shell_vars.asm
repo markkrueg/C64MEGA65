@@ -14,16 +14,32 @@
 
 #include "menu_vars.asm"
 
+; ----------------------------------------------------------------------------
 ; DEBUG: WIP-V5-A11
+; ----------------------------------------------------------------------------
+
+; We are measuring the amount of low latency HyperRAM accesses ("FAST") and
+; the mount of high latency accesses ("SLOW"). The two variables need to
+; be located right behind each other. Each variable stores the LO/HI words.
 LATENCY_FAST    .BLOCK 2
 LATENCY_SLOW    .BLOCK 2
+
+; On screen we output the quotient of FAST/SLOW, so a high number is good
+; We use a string, rightmost word is the latest measurement and we then
+; "scroll" it to the left
 LATENCY_Q_STR   .BLOCK 45                       ; incl. 0-term b/c WORD2HEXSTR                  
 LATENCY_Q_STR_L .EQU   44                       ; quotient string length
 LATENCY_V_STR_L .EQU   5                        ; len. of 1 value incl. space
-LATENCY_Q_STR_S .EQU   32                       ; space
-DBG_CYC_MID     .BLOCK 1                        ; cycle counter to measure 1s
+LATENCY_Q_STR_S .EQU   32                       ; space char in ASCII
+
+; We use the QNICE cycle counter to update the screen every 1 second
+DBG_CYC_MID     .BLOCK 1
 DBG_CYC_HI      .BLOCK 1
 DBG_WAIT        .EQU   0x02FB                   ; 1 second
+
+; ----------------------------------------------------------------------------
+; Normal code / no debug
+; ----------------------------------------------------------------------------
 
 ; reset handling
 WELCOME_SHOWN   .BLOCK 1                        ; we need to trust that this

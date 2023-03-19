@@ -146,8 +146,9 @@ START_CONNECT   RSUB    WAIT333MS, 1
                 ; DEBUG: WIP-V5-A11
                 ; ------------------------------------------------------------
 
-                ; skip the code of the debug functions
-                RBRA    DBG_CONT, 1
+                ; skip the code of the debug functions: initialize the
+                ; debug system and start the main loop
+                RBRA    DBG_SETUP, 1
 
                 ; backup main screen coordinate variables
 BACKUP_COORDS   SYSCALL(enter, 1)
@@ -169,7 +170,7 @@ RESTORE_COORDS  SYSCALL(enter, 1)
 
                 ; Show the debug screen overlay over the screen of the C64
 SET_DBG_SCR     SYSCALL(enter, 1)
-                MOVE    SCR$OSM_M_DEBUG, R8
+                MOVE    DBG_WINDOW, R8
                 MOVE    SCR$OSM_MEM, R9            
                 MOVE    4, R10
                 SYSCALL(memcpy, 1)
@@ -186,6 +187,9 @@ RESET_1S        INCRB
                 MOVE    @R1, @R0
                 DECRB
                 RET
+
+DBG_WINDOW      .DW 0, 0, 44, 1                 ; x|y, dx|dy of debug window
+DBG_FATAL_STR   .ASCII_W "Illegal HyperRAM measurement."                
 
                 ; Debug main loop
 HANDLE_DEBUG    SYSCALL(enter, 1)
@@ -206,11 +210,57 @@ HANDLE_DEBUG    SYSCALL(enter, 1)
                 RBRA    _HNDL_DBG_RET, !N       ; wait while @R10 <= R8
 
                 ; retrieve new measurement
-_HNDL_DBG_1     MOVE    @R10, R7
+_HNDL_DBG_1     MOVE    M2M$RAMROM_DEV, R0      ; switch to measure registers
+                MOVE    M2M$SYS_INFO, @R0
+                MOVE    M2M$RAMROM_4KWIN, R0
+                MOVE    M2M$SYS_HDMI, @R0
+                MOVE    M2M$RAMROM_DATA, R0
+                ADD     3, R0
+                MOVE    @R0++, R1               ; # fast acc. LO
+                MOVE    @R0++, R2               ; # fast acc. HI
+                MOVE    @R0++, R3               ; # slow acc. LO
+                MOVE    @R0, R4                 ; # slow acc. HI
+                MOVE    R1, R5                  ; backup the measurements
+                MOVE    R2, R6
+                MOVE    R3, R7
+                MOVE    R4, R8
+
+                ; subtract last stored value so that we always measure
+                ; the amount of accesses in the 1s interval
+                MOVE    LATENCY_FAST, R0
+                SUB     @R0++, R1               ; FAST LO -= STORED FAST LO
+                SUBC    @R0++, R2               ; FAST HI -= STORED FAST HI
+                SUB     @R0++, R3               ; SLOW LO -= STORED SLOW LO
+                SUBC    @R0, R4                 ; SLOW HI -= STORED SLOW HI
+
+                ; Prepare for next iteration by remembering our last
+                ; measurement and by resetinng the 1s interval counter.
+                ; We are doing this already here because the following
+                ; operations are slow 
+                MOVE    LATENCY_FAST, R0
+                MOVE    R5, @R0++
+                MOVE    R6, @R0++
+                MOVE    R7, @R0++
+                MOVE    R8, @R0
                 RSUB    RESET_1S, 1
+
+                ; calculate the qutotient FAST/SLOW
+                MOVE    R1, R8
+                MOVE    R2, R9
+                MOVE    R3, R10
+                MOVE    R4, R11
+                SYSCALL(divu32, 1)
+                MOVE    R8, R7                  ; R7 = FAST/SLOW
+
+                ; fatal if the quotient is larger than 0xFFFF
+                CMP     0, R9
+                RBRA    _HNDL_DBG_2, Z
+                RSUB    RESTORE_COORDS, 1
+                MOVE    DBG_FATAL_STR, R8
+                RBRA    FATAL, 1
                 
                 ; copy current string one digit to the left
-                MOVE    LATENCY_Q_STR, R8
+_HNDL_DBG_2     MOVE    LATENCY_Q_STR, R8
                 ADD     LATENCY_V_STR_L, R8
                 MOVE    LATENCY_Q_STR, R9
                 MOVE    LATENCY_Q_STR_L, R10
@@ -239,7 +289,7 @@ _HNDL_DBG_RET   SYSCALL(leave, 1)
                 RET
 
                 ; Setup and show debug screen
-DBG_CONT        RSUB    BACKUP_COORDS, 1
+DBG_SETUP       RSUB    BACKUP_COORDS, 1
                 RSUB    SET_DBG_SCR, 1
                 RSUB    SCR$CLR, 1
                 RSUB    SCR$OSM_M_ON, 1
@@ -253,6 +303,19 @@ DBG_CONT        RSUB    BACKUP_COORDS, 1
                 ; remember the current cycle counter to reset the measurement
                 ; of 1 second intervals
                 RSUB    RESET_1S, 1
+
+                ; initialize measurements
+                MOVE    M2M$RAMROM_DEV, R0      ; switch to measure registers
+                MOVE    M2M$SYS_INFO, @R0
+                MOVE    M2M$RAMROM_4KWIN, R0
+                MOVE    M2M$SYS_HDMI, @R0
+                MOVE    M2M$RAMROM_DATA, R0
+                ADD     3, R0                
+                MOVE    LATENCY_FAST, R1
+                MOVE    @R0++, @R1++
+                MOVE    @R0++, @R1++
+                MOVE    @R0++, @R1++
+                MOVE    @R0, @R1
 
                 ; ------------------------------------------------------------
                 ; Main loop:
