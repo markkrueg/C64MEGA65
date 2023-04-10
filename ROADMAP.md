@@ -18,7 +18,7 @@ Feature Roadmap
 * C1581 virtual drive support via SD card (`*.D81`)
 * Support `*.D64` images with error maps (filesizes 175,531 and 197,376)
 * Support the creation of empty disk images
-* Supoprt the creation of empty config files and the migration of the config
+* Support the creation of empty config files and the migration of the config
   file from an older version to a newer version
 * Alternative KERNAL & Floppy Disk ROMs and fast loaders
 * Parallel C1541 port for faster (~20x) loading time using DolphinDOS
